@@ -29,5 +29,12 @@ stages:
             configuration: $(BuildConfiguration)
             msbuildArguments: '-p:DeployOnBuild=true -p:WebPublishMethod=Package -p:PackageAsSingleFile=true -p:PackageLocation="$(Build.StagingDirectory)" -t:build -restore'
 
+        - task: CmdLine@2
+          inputs:
+            script: |
+              tree $(Agent.WorkFolder)/1
+              echo "Build.StagingDirectory:" 
+              echo "$(Build.StagingDirectory)"
+
 
   
