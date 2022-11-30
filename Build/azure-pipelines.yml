@@ -1,0 +1,33 @@
+trigger:
+  - main
+
+variables:
+- group: 'Build Variables'
+- name: buildConfiguration
+  value: 'Release'
+
+stages:
+  - stage: Build
+    jobs:
+    - job: Build
+      pool:
+        name: Default
+        demands:
+        - agent.os -equals Windows_NT
+      timeoutInMinutes: 120
+      workspace:        
+        clean: outputs
+
+      steps:
+        - checkout: self
+          fetchDepth: 1
+
+        - task: MSBuild@1
+          displayName: Build Mirroring App
+          inputs:
+            solution: '**/*.sln'
+            configuration: $(BuildConfiguration)
+            msbuildArguments: '-p:DeployOnBuild=true -p:WebPublishMethod=Package -p:PackageAsSingleFile=true -p:PackageLocation="$(Build.StagingDirectory)" -t:build -restore'
+
+
+  
