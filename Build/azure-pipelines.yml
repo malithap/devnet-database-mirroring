@@ -5,15 +5,15 @@ variables:
 - group: 'Build Variables'
 - name: buildConfiguration
   value: 'Release'
+- name: solution 
+  value: '**/*.sln'
 
 stages:
-  - stage: Build and deploy 
+  - stage: Build_and_deploy 
     jobs:
     - job: Build
       pool:
-        name: Default
-        demands:
-        - agent.os -equals Windows_NT
+        vmImage: 'windows-latest'
       workspace:        
         clean: all
 
@@ -21,28 +21,30 @@ stages:
         - checkout: self
           fetchDepth: 1
 
-        #- task: DownloadSecureFile@1
-        #  name: PrivateKey file
-        #  displayName: 'Download PrivateKey file'
-        #  inputs:
-        #    secureFile: 'PrivateKey.txt'
+        - task: NuGetToolInstaller@1
 
-        #- task: DeleteFiles@1
-        #  inputs:
-        #    contents: |
-        #      **/Source/DatabaseMirroringProject/PrivateKey.txt
+        - task: NuGetCommand@2
+          inputs:
+            restoreSolution: $(solution)
 
-        #- task: CopyFiles@2
-        #  inputs:
-        #    contents: 'PrivateKey.txt'
-        #    targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: DownloadSecureFile@1
+          name: 'Download_PrivateKey_file'
+          inputs:
+            secureFile: 'PrivateKey.txt'
+
+        - task: CopyFiles@2
+          inputs:
+            sourceFolder: $(Agent.TempDirectory)
+            contents: PrivateKey.txt
+            OverWrite: true
+            targetFolder: "$(Build.SourcesDirectory)/Source/DatabaseMirroringProject"
 
         - task: MSBuild@1
           displayName: Build Mirroring App
           inputs:
-            solution: '**/*.sln'
+            solution: '**/DatabaseMirroringProject.csproj'
             configuration: $(BuildConfiguration)
-            msbuildArguments: '-p:DeployOnBuild=true -p:WebPublishMethod=Package -p:PackageAsSingleFile=true -p:PackageLocation="$(Build.StagingDirectory)" -t:build -restore'
+            msbuildArguments: '-p:DeployOnBuild=true -p:WebPublishMethod=Package -p:PackageAsSingleFile=true -p:PackageLocation="$(Build.StagingDirectory)"'
 
         - task: DotNetCoreCLI@2
           inputs:
@@ -50,46 +52,49 @@ stages:
             publishWebProjects: false
             projects: |
               **/DatabaseMirroringProject.ArmTemplate.csproj
-            arguments: "--configuration $(BuildConfiguration) --output $(Build.StagingDirectory) -p:Version=$(SoAssemblyFileVersion)"
+            arguments: "--configuration $(BuildConfiguration) --output $(Build.StagingDirectory)"
             zipAfterPublish: true
 
         - publish: $(Build.StagingDirectory)
-            artifact: Apps
+          artifact: Apps
 
-    #- deployment: DeployArmAndApps
-    #  workspace:
-    #    clean: all
-    #  dependsOn: Build
-    #  condition: succeeded()
-    #  pool:
-    #    name: Default
-    #    demands:
-    #    - agent.os -equals Windows_NT
-    #  strategy:
-    #    runOnce:
-    #      deploy:
-    #        steps:
-    #        - checkout: self
-    #        - download: none
+    - deployment: Deploy
+      dependsOn: build
+      condition: succeeded()
+      pool:
+        vmImage: 'windows-latest'
+      workspace:
+        clean: all
+      variables:
+      - group: 'Mirroring Test App'
+      environment: mirroring-sod
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - checkout: self
+            - download: none
 
-    #        - task: DownloadPipelineArtifact@2
-    #          inputs:
-    #            artifact: 'Apps'
-    #            path: '$(Pipeline.Workspace)/Apps'
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                artifact: 'Apps'
+                path: '$(Pipeline.Workspace)/Apps'
 
-    #        - task: AzurePowerShell@5
-    #          displayName: 'Run Deployment Script'
-    #          inputs:
-    #            azureSubscription: 'AS QA-Development'
-    #            ScriptPath: '$(Build.SourcesDirectory)/Source/DatabaseMirroringProject.ArmTemplate/Deploy-Mirroring.ps1'
-    #            azurePowerShellVersion: latestVersion
-    #            pwsh: true
+            - task: AzurePowerShell@5
+              displayName: 'Run deployment script'
+              inputs:
+                azureSubscription: 'AS QA-Development'
+                scriptPath: '$(Build.SourcesDirectory)/Source/DatabaseMirroringProject.ArmTemplate/Deploy-Mirroring.ps1'
+                azurePowerShellVersion: latestVersion
+                pwsh: true
 
-    #        - task: AzureWebApp@1
-    #          inputs:
-    #            azureSubscription: 'AS QA-Development'
-    #            appName: $(WebAppName)
-    #            package: '$(Pipeline.Workspace)/Apps/DatabaseMirroringProject.zip'
+            - task: AzureRmWebAppDeployment@4
+              inputs:
+                appType: 'webApp'
+                azureSubscription: 'AS QA-Development'
+                WebAppName: $(WebAppName)
+                enableXmlVariableSubstitution: true
+                package: '$(Pipeline.Workspace)/Apps/DatabaseMirroringProject.zip'
 
 
 

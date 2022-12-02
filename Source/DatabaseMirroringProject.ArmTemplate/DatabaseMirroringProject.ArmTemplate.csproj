@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.Build.NoTargets/3.5.6">
+    <!-- https://www.nuget.org/packages/Microsoft.Build.NoTargets -->
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Bicep Include="Mirroring.bicep" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Azure.Bicep.CommandLine.win-x64" Version="0.12.40" Condition="$([MSBuild]::IsOsPlatform('Windows'))" />
+      <PackageReference Include="Azure.Bicep.MSBuild" Version="0.12.40" />
+    </ItemGroup>
+
+    <!-- Include *.bicep *.json and *.ps1 into the package -->
+    <ItemGroup>
+        <None Update="*.bicep" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+        <None Update="*.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+        <None Update="*.ps1" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+    </ItemGroup>
+
+</Project>

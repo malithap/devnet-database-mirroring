@@ -125,9 +125,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="MirroringClientService.svc" />
-    <Content Include="PrivateKey.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Content Include="PrivateKey.txt" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
