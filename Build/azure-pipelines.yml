@@ -28,11 +28,12 @@ stages:
             restoreSolution: $(solution)
 
         - task: DownloadSecureFile@1
-          name: 'Download_PrivateKey_file'
+          displayName: Download PrivateKey File
           inputs:
             secureFile: 'PrivateKey.txt'
 
         - task: CopyFiles@2
+          displayName: Copy PrivateKey File To SourcesDirectory
           inputs:
             sourceFolder: $(Agent.TempDirectory)
             contents: PrivateKey.txt
@@ -47,6 +48,7 @@ stages:
             msbuildArguments: '-p:DeployOnBuild=true -p:WebPublishMethod=Package -p:PackageAsSingleFile=true -p:PackageLocation="$(Build.StagingDirectory)"'
 
         - task: DotNetCoreCLI@2
+          displayName: Publish ARM Template
           inputs:
             command: "publish"
             publishWebProjects: false
@@ -89,6 +91,7 @@ stages:
                 pwsh: true
 
             - task: AzureRmWebAppDeployment@4
+              displayName: Deploy Wcf service Into WebApp
               inputs:
                 appType: 'webApp'
                 azureSubscription: 'AS QA-Development'
